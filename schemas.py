@@ -1,48 +1,39 @@
 """
 Database Schemas
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Beer Pong app schemas using Pydantic. Each model name maps to a MongoDB
+collection using the lowercase name (e.g., Match -> "match").
 """
-
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
-
-class User(BaseModel):
+class Player(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Players collection schema
+    Collection name: "player"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    name: str = Field(..., description="Player display name")
+    nickname: Optional[str] = Field(None, description="Optional nickname")
+    avatar_url: Optional[str] = Field(None, description="Avatar image URL")
 
-class Product(BaseModel):
+class HitEvent(BaseModel):
+    """Embedded event stored inside a match document"""
+    team: Literal['A', 'B'] = Field(..., description="Which team made the hit")
+    shooter: Optional[str] = Field(None, description="Name of the shooter")
+    cups: int = Field(1, ge=1, le=10, description="How many cups were hit in this turn")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class Match(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Matches collection schema
+    Collection name: "match"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
-
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    team_a: str = Field(..., description="Team A name")
+    team_b: str = Field(..., description="Team B name")
+    cups_per_side: int = Field(10, ge=1, le=20, description="Starting cups per side")
+    cups_remaining_a: int = Field(10, ge=0)
+    cups_remaining_b: int = Field(10, ge=0)
+    status: Literal['ongoing', 'finished'] = Field('ongoing')
+    winner: Optional[Literal['A', 'B']] = Field(None, description="Winner team code if finished")
+    events: List[HitEvent] = Field(default_factory=list, description="Chronological list of hit events")
